@@ -11,13 +11,12 @@ local Camera = workspace.CurrentCamera
 local CameraParts = workspace.Map.Cameras
 
 local cameraBobbleIntensity = 0.1
+local originalCameraCFrame = CameraParts.CaseCamera.CFrame
 local mouseBobbleConnection
 
 local function mouseBobble()
-	local bobbleOffset = Vector3.new(mouse.x, mouse.y, 0) * cameraBobbleIntensity
+	local bobbleOffset = Vector3.new(mouse.X / mouse.ViewSizeX, mouse.Y / mouse.ViewSizeY, 0) * cameraBobbleIntensity
 	Camera.CFrame = originalCameraCFrame * CFrame.new(bobbleOffset)
-	print(mouse.X)
-	print(mouse.Y)
 end
 
 local function mouseBobbleDisconnect()
@@ -32,7 +31,6 @@ local shop = Icon.new()
 	:setLabel("Shop")
 	:bindEvent("selected", function()
 		Camera.CameraType = Enum.CameraType.Scriptable
-		originalCameraCFrame = Camera.CFrame
 		Camera.CFrame = CameraParts.CaseCamera.CFrame
 
 		mouseBobbleConnection = UserInputService.InputChanged:Connect(function(input, gameProcessedEvent)
