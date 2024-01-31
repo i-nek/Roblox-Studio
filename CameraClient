@@ -1,0 +1,72 @@
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local character = player.Character or player.CharacterAdded:Wait()
+
+local Animations = ReplicatedStorage.Animations.Camera
+local Events = ReplicatedStorage.Events
+local captureEvent = Events.Camera.CapturePhoto
+
+local currentCamera = workspace.CurrentCamera
+local cameraTool = script.Parent
+
+local updateCameraConnection
+
+local function updateCamera()
+	local toolPosition = cameraTool.CameraView.Position
+	local lookAtPosition = toolPosition + cameraTool.CameraView.CFrame.LookVector
+	currentCamera.CFrame = CFrame.new(toolPosition, lookAtPosition)
+end
+
+local function zoom()
+	currentCamera.CameraType = Enum.CameraType.Scriptable
+	currentCamera.CFrame = cameraTool.CameraView.CFrame
+	updateCameraConnection = game:GetService("RunService").RenderStepped:Connect(updateCamera)
+end
+
+cameraTool.Equipped:Connect(function()
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if input.UserInputType == Enum.UserInputType.MouseButton2 and player.Character["camera"]:IsA("Tool") then
+			zoom()
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input, processed)
+		if input.UserInputType == Enum.UserInputType.MouseButton2 then
+			currentCamera.CameraType = Enum.CameraType.Custom
+			updateCameraConnection:Disconnect()
+		end
+	end)
+end)
+
+local function captureImage()
+	currentCamera.CameraType = Enum.CameraType.Scriptable
+	currentCamera.CFrame = character.Head.CFrame
+	local newCamera = currentCamera:Clone()
+	newCamera.Parent = ReplicatedFirst.SurfaceGui
+	ReplicatedFirst.SurfaceGui.Picture.CurrentCamera = newCamera
+	currentCamera.CameraType = Enum.CameraType.Custom
+
+	local Objects = game.ReplicatedFirst.SurfaceGui.Picture
+
+	local regionSize = Vector3.new(50, 50, 50) 
+	local regionPosition = character.HumanoidRootPart.Position + character.HumanoidRootPart.CFrame.LookVector * 25 
+
+	local Region = Region3.new(regionPosition - (regionSize / 2), regionPosition + (regionSize / 2))
+	Objects:ClearAllChildren()
+
+	for _, v in pairs(workspace:FindPartsInRegion3(Region, nil, 1000)) do
+		v:Clone().Parent = Objects
+		print(v)
+	end
+
+	for _, Player in pairs(game.Players:GetPlayers()) do
+		local Copy = game.ReplicatedFirst.SurfaceGui:Clone()
+		Copy.Parent = Player.PlayerGui
+	end
+end
+
+--cameraTool.Activated:Connect(captureImage)
