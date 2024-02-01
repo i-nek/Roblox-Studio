@@ -20,8 +20,8 @@ local updateCameraConnection
 local zoomConnection
 
 local ZOOM_Speed = 5
-local MIN_FOV = 50
-local MAX_FOV = 120
+local MIN_FOV = 90
+local MAX_FOV = 10
 
 local function zoom(input, processed)
 	if input.UserInputType == Enum.UserInputType.MouseWheel then
@@ -29,7 +29,7 @@ local function zoom(input, processed)
 		local currentFOV = currentCamera.FieldOfView
 		local newFOV = currentFOV - delta * ZOOM_Speed
 
-		newFOV = math.clamp(newFOV, MIN_FOV, MAX_FOV)
+		newFOV = math.clamp(newFOV, MAX_FOV, MIN_FOV)
 		currentCamera.FieldOfView = newFOV
 	end
 end
