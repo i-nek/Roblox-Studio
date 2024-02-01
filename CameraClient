@@ -2,6 +2,7 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
@@ -9,42 +10,54 @@ local character = player.Character or player.CharacterAdded:Wait()
 
 local Animations = ReplicatedStorage.Animations.Camera
 local Events = ReplicatedStorage.Events
+local Sounds = ReplicatedStorage.Sounds
 local captureEvent = Events.Camera.CapturePhoto
 
 local currentCamera = workspace.CurrentCamera
 local cameraTool = script.Parent
 
 local updateCameraConnection
+local zoomConnection
+
+local ZOOM_Speed = 5
+local MIN_FOV = 50
+local MAX_FOV = 120
+
+local function zoom(input, processed)
+	if input.UserInputType == Enum.UserInputType.MouseWheel then
+		local delta = input.Position.Z
+		local currentFOV = currentCamera.FieldOfView
+		local newFOV = currentFOV - delta * ZOOM_Speed
+
+		newFOV = math.clamp(newFOV, MIN_FOV, MAX_FOV)
+		currentCamera.FieldOfView = newFOV
+	end
+end
 
 local function updateCamera()
 	local toolPosition = cameraTool.CameraView.Position
-	local lookAtPosition = toolPosition + cameraTool.CameraView.CFrame.LookVector
-	currentCamera.CFrame = CFrame.new(toolPosition, lookAtPosition)
+	local forwardOffset = cameraTool.CameraView.CFrame.LookVector * 1
+	local newToolPosition = toolPosition + forwardOffset
+	local newLookAtPosition = newToolPosition + cameraTool.CameraView.CFrame.LookVector
+	currentCamera.CFrame = CFrame.new(newToolPosition, newLookAtPosition)
 end
 
-local function zoom()
+
+local function inCamera()
 	currentCamera.CameraType = Enum.CameraType.Scriptable
 	currentCamera.CFrame = cameraTool.CameraView.CFrame
-	updateCameraConnection = game:GetService("RunService").RenderStepped:Connect(updateCamera)
+	updateCameraConnection = RunService.RenderStepped:Connect(updateCamera)
+	zoomConnection = UserInputService.InputChanged:Connect(zoom)
 end
 
-cameraTool.Equipped:Connect(function()
-	UserInputService.InputBegan:Connect(function(input, processed)
-		if input.UserInputType == Enum.UserInputType.MouseButton2 and player.Character["camera"]:IsA("Tool") then
-			zoom()
-		end
-	end)
-	UserInputService.InputEnded:Connect(function(input, processed)
-		if input.UserInputType == Enum.UserInputType.MouseButton2 then
-			currentCamera.CameraType = Enum.CameraType.Custom
-			updateCameraConnection:Disconnect()
-		end
-	end)
-end)
+local function outCamera()
+	currentCamera.CameraType = Enum.CameraType.Custom
+	currentCamera.FieldOfView = 70
+	updateCameraConnection:Disconnect()
+	zoomConnection:Disconnect()
+end
 
 local function captureImage()
-	currentCamera.CameraType = Enum.CameraType.Scriptable
-	currentCamera.CFrame = character.Head.CFrame
 	local newCamera = currentCamera:Clone()
 	newCamera.Parent = ReplicatedFirst.SurfaceGui
 	ReplicatedFirst.SurfaceGui.Picture.CurrentCamera = newCamera
@@ -69,4 +82,7 @@ local function captureImage()
 	end
 end
 
---cameraTool.Activated:Connect(captureImage)
+-- Connections
+cameraTool.Equipped:Connect(inCamera)
+cameraTool.Unequipped:Connect(outCamera)
+cameraTool.Activated:Connect(captureImage)
